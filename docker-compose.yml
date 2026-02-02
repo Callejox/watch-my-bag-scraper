@@ -1,0 +1,64 @@
+# Watch MY Bag Scraper - Docker Compose
+version: '3.8'
+
+services:
+  # Dashboard web (Streamlit)
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watch-my-bag-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persistir datos entre reinicios
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Montar config para editar sin rebuild
+      - ./config.py:/app/config.py:ro
+    environment:
+      - TZ=Europe/Madrid
+    restart: unless-stopped
+    command: streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0
+
+  # Scraper (ejecutar manualmente o con cron)
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watch-my-bag-scraper
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config.py:/app/config.py:ro
+    environment:
+      - TZ=Europe/Madrid
+    profiles:
+      - scrape  # Solo se ejecuta con --profile scrape
+    command: python main.py --scrape
+
+  # Inicializar base de datos (ejecutar una vez)
+  init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watch-my-bag-init
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    profiles:
+      - init  # Solo se ejecuta con --profile init
+    command: python main.py --init
+
+  # Generar reporte Excel
+  report:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watch-my-bag-report
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    profiles:
+      - report  # Solo se ejecuta con --profile report
+    command: python main.py --report

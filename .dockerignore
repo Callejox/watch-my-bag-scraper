@@ -1,0 +1,50 @@
+# Watch MY Bag Scraper - Docker Ignore
+
+# Entorno virtual Python
+venv/
+.venv/
+env/
+.env/
+
+# Cache de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Datos locales (se montan como volumen)
+data/
+logs/
+
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentación (no necesaria en imagen)
+*.md
+!requirements.txt
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Archivos temporales
+*.tmp
+*.temp
+*.log

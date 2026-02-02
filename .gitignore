@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/*.log
+*.log
+
+# Database (incluir estructura pero no datos sensibles)
+# Comentar la siguiente línea si quieres incluir la base de datos en GitHub
+data/inventory.db
+data/inventory.db-journal
+
+# Exports y archivos generados
+data/exports/*.xlsx
+data/exports/*.csv
+
+# Imágenes descargadas (ocupan mucho espacio)
+data/images/
+
+# Debug files
+data/debug/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment variables (si tienes un .env)
+.env
+.env.local
+
+# Temporal files
+*.tmp
+*.temp
+
+# Scratchpad (archivos temporales de Claude)
+scratchpad/
+
+# Streamlit cache
+.streamlit/
+
+# Pytest cache
+.pytest_cache/
+.cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
