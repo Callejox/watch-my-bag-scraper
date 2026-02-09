@@ -39,6 +39,7 @@ from config import (
     LOG_ROTATION,
     LOG_RETENTION,
     CHRONO24_MODELS,
+    CHRONO24_MAX_PAGES,
     VESTIAIRE_SELLER_IDS,
     CATAWIKI_ENABLED,
     USE_FLARESOLVERR,
@@ -111,7 +112,7 @@ async def run_chrono24_scraping(db: DatabaseManager, processor: DataProcessor, t
                 max_pages = 1  # Solo 1 página para test rápido
             else:
                 models = CHRONO24_MODELS
-                max_pages = 5
+                max_pages = CHRONO24_MAX_PAGES
 
             logger.info(f"Scrapeando {len(models)} modelos de Chrono24...")
 
@@ -119,8 +120,14 @@ async def run_chrono24_scraping(db: DatabaseManager, processor: DataProcessor, t
             inventory = await scraper.scrape(models=models, max_pages=max_pages)
             results['items_scraped'] = len(inventory)
 
+            # Construir metadata del scraping para validación de cobertura
+            scraping_metadata = {
+                'pages_scraped': getattr(scraper, 'pages_scraped', None),
+                'pages_total': getattr(scraper, 'pages_total', None),
+            }
+
             # Procesar ventas (comparar con ayer)
-            process_results = processor.process_chrono24_sales(inventory)
+            process_results = processor.process_chrono24_sales(inventory, scraping_metadata)
             results['items_sold'] = process_results['items_sold']
             results['status'] = 'success'
 

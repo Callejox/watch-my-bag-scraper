@@ -48,6 +48,9 @@ data/inventory.db-journal
 data/exports/*.xlsx
 data/exports/*.csv
 
+# Validation results
+validation_results.csv
+
 # Imágenes descargadas (ocupan mucho espacio)
 data/images/
 

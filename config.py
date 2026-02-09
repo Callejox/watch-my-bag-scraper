@@ -46,7 +46,7 @@ CHRONO24_EXCLUDE_COUNTRIES = [
 
 # Configuración de paginación de Chrono24
 CHRONO24_PAGE_SIZE = 120  # Items por página (30, 60, o 120)
-CHRONO24_MAX_PAGES = 0    # Máximo de páginas por modelo (0 = todas las páginas)
+CHRONO24_MAX_PAGES = 20   # Máximo de páginas por modelo (20 páginas = ~2,400 items, 25 min, 5.7% cobertura)
 
 # =============================================================================
 # FLARESOLVERR - BYPASS CLOUDFLARE
@@ -74,6 +74,10 @@ PAGINATION_RETRY_COUNT = 3  # Reintentar 3 veces antes de saltar/detener
 
 # Comportamiento ante fallo consecutivo: si página N y N+1 fallan, detener scraping
 PAGINATION_STOP_ON_CONSECUTIVE_FAILURES = True
+
+# Validación de cobertura de scraping (prevención de falsos positivos)
+MAX_COVERAGE_CHANGE_PERCENT = 10  # No comparar si cobertura cambió >10%
+SCRAPING_METADATA_ENABLED = True  # Track pages_scraped/pages_total
 
 # =============================================================================
 # VESTIAIRE COLLECTIVE - VENDEDORES A SEGUIR

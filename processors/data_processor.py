@@ -90,9 +90,51 @@ class DataProcessor:
 
         return sold_items, new_items, updated_items
 
+    def _validate_scraping_coverage(
+        self,
+        platform: str,
+        today_count: int,
+        yesterday_count: int,
+        pages_scraped: int = None,
+        pages_total: int = None
+    ) -> tuple[bool, str]:
+        """
+        Valida si la cobertura de scraping es suficiente para detectar ventas.
+
+        Args:
+            platform: Nombre de la plataforma
+            today_count: Items scrapeados hoy
+            yesterday_count: Items scrapeados ayer
+            pages_scraped: Páginas scrapeadas (opcional)
+            pages_total: Total de páginas disponibles (opcional)
+
+        Returns:
+            tuple[bool, str]: (is_valid, reason)
+        """
+        from config import MAX_COVERAGE_CHANGE_PERCENT
+
+        # Regla 1: Cobertura debe ser consistente (±10%)
+        if yesterday_count > 0:
+            coverage_change_pct = abs((today_count - yesterday_count) / yesterday_count) * 100
+            if coverage_change_pct > MAX_COVERAGE_CHANGE_PERCENT:
+                return False, f"Cobertura cambió {coverage_change_pct:.1f}% (ayer: {yesterday_count}, hoy: {today_count})"
+
+        # Regla 2: Si conocemos páginas scrapeadas/total, verificar cobertura
+        if pages_scraped is not None and pages_total is not None and pages_total > 0:
+            coverage_pct = (pages_scraped / pages_total) * 100
+            if coverage_pct < 10:
+                return False, f"Cobertura muy baja: {pages_scraped}/{pages_total} páginas ({coverage_pct:.1f}%)"
+
+        # Regla 3: Count de hoy debe ser razonable
+        if today_count < 100:
+            return False, f"Count muy bajo: {today_count} items"
+
+        return True, "Cobertura aceptable"
+
     def process_chrono24_sales(
         self,
-        today_inventory: List[Dict[str, Any]]
+        today_inventory: List[Dict[str, Any]],
+        scraping_metadata: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Procesa las ventas de Chrono24.
@@ -100,6 +142,7 @@ class DataProcessor:
 
         Args:
             today_inventory: Inventario obtenido hoy
+            scraping_metadata: Metadata del scraping (pages_scraped, pages_total, etc.)
 
         Returns:
             Diccionario con estadísticas y ventas detectadas
@@ -147,6 +190,36 @@ class DataProcessor:
                 'updated_items': [],
                 'is_first_run': False,
                 'scraper_failed': True,  # Flag para indicar fallo
+            }
+
+        # Validar cobertura de scraping antes de comparar
+        pages_scraped = scraping_metadata.get('pages_scraped') if scraping_metadata else None
+        pages_total = scraping_metadata.get('pages_total') if scraping_metadata else None
+
+        is_valid, reason = self._validate_scraping_coverage(
+            platform,
+            len(today_inventory),
+            len(yesterday_inventory),
+            pages_scraped,
+            pages_total
+        )
+
+        if not is_valid:
+            self.logger.warning(f"Chrono24: Saltando detección de ventas - {reason}")
+            # Guardar inventario pero NO detectar ventas
+            self.db.save_daily_inventory(platform, today_inventory, today)
+            return {
+                'platform': platform,
+                'items_scraped': len(today_inventory),
+                'items_sold': 0,  # NO detectar ventas falsas
+                'items_new': 0,
+                'items_updated': 0,
+                'sales': [],
+                'new_items': [],
+                'updated_items': [],
+                'is_first_run': False,
+                'scraper_incomplete': True,  # Flag para indicar cobertura insuficiente
+                'incomplete_reason': reason,
             }
 
         # Comparar inventarios

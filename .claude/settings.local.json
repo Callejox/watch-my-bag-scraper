@@ -43,7 +43,11 @@
       "Bash(then echo \"README.md existe\")",
       "Bash(else echo \"README.md NO existe\")",
       "Bash(git config:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)"
     ]
   }
 }
