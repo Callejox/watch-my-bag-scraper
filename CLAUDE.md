@@ -23,6 +23,7 @@ Proyecto miha/
 ├── config.py                  # Configuración centralizada
 ├── check_integrity.py         # Verificación de integridad (sin pytest)
 ├── fix_database.py            # Script de reparación de BD
+├── bulk_delete_chrono24.py    # Eliminación masiva de falsos positivos Chrono24
 ├── requirements.txt           # Dependencias Python
 ├── Dockerfile                 # Imagen Docker
 ├── docker-compose.yml         # Orquestación de servicios
@@ -138,6 +139,20 @@ Suite completa de tests con pytest:
 - Tests funcionales de lógica de detección de ventas
 - Generación de reportes de integridad
 
+### 10. bulk_delete_chrono24.py
+Script dedicado para eliminación masiva de ventas falsas de Chrono24:
+- Preview obligatorio antes de eliminar (muestra total + muestra de 10)
+- Backup automático con timestamp antes de modificar
+- Confirmación explícita del usuario (escribir "ELIMINAR")
+- Logging de operación en scrape_logs para auditoría
+- Verificación automática de integridad post-eliminación (check_integrity.py --full)
+- Resumen detallado y próximos pasos recomendados
+- Uso:
+  ```bash
+  py bulk_delete_chrono24.py              # Preview
+  py bulk_delete_chrono24.py --execute    # Eliminar
+  ```
+
 ## Consideraciones Importantes
 
 ### Anti-Bot Protection
@@ -235,6 +250,10 @@ py fix_database.py --fix-duplicates    # Solo eliminar duplicados
 py fix_database.py --add-constraint    # Añadir constraint único
 py fix_database.py --fix-false-positives # Eliminar falsos positivos
 py fix_database.py --fix-all           # Reparación completa
+
+# Eliminación masiva de falsos positivos Chrono24 (si scraping tuvo cobertura insuficiente)
+py bulk_delete_chrono24.py             # Preview (sin modificar)
+py bulk_delete_chrono24.py --execute   # Eliminar con backup automático
 
 # Tests con pytest (requiere pytest instalado)
 pytest tests/test_data_integrity.py -v
@@ -335,12 +354,12 @@ Duración total: 285s (4.8m)
 - ✅ Dashboard con imágenes locales: Fallback automático local → remota → placeholder
 
 ### Base de Datos (última verificación: 2026-02-09)
-- ⚠️ **717 ventas de Chrono24** (todas validadas como INCONCLUSIVE por Cloudflare)
+- ✅ **Base de datos limpia**: 0 ventas Chrono24, 144 ventas Vestiaire (717 falsos positivos eliminados)
 - ✅ **Sistema de prevención activo** (valida cobertura antes de detectar ventas)
 - ✅ **Bug crítico corregido** (max_pages hardcoded → ahora usa config)
 - ✅ **Constraint único** activo en detected_sales
-- ✅ **Scripts de validación y limpieza** listos para uso
-- ⏳ **Decisión pendiente**: Tratamiento de 717 ventas existentes
+- ✅ **Backup disponible**: inventory_before_chrono24_cleanup_20260209_194158.db
+- ✅ **Scripts de validación y limpieza** disponibles para uso futuro
 
 ## Notas de Mantenimiento
 
@@ -1253,6 +1272,48 @@ py main.py --scrape --catawiki-only
 - ✅ Sistema robusto con validación de cobertura
 - ⚠️ Cloudflare bloquea validación HTTP de URLs (esperado, no es un bug)
 
+### 2026-02-09 (tarde): Limpieza Masiva de Falsos Positivos - COMPLETADA
+**Decisión tomada:**
+- Usuario eligió **Opción 1: Radical cleanup** - Eliminar TODAS las 717 ventas de Chrono24
+
+**Ejecución:**
+1. **Creación de bulk_delete_chrono24.py** (285 líneas):
+   - Script dedicado con funciones de seguridad completas
+   - Preview obligatorio, backup automático, confirmación explícita
+   - Integración con check_integrity.py para verificación post-eliminación
+
+2. **Primera ejecución - Error detectado**:
+   - Error: `table scrape_logs has no column named notes`
+   - Fix inmediato: Cambio de columna "notes" a "errors" en INSERT statement
+
+3. **Segunda ejecución - EXITOSA**:
+   ```bash
+   py bulk_delete_chrono24.py --execute
+   ```
+
+**Resultados:**
+- ✅ 717 ventas de Chrono24 eliminadas
+- ✅ Backup creado: `inventory_before_chrono24_cleanup_20260209_194158.db`
+- ✅ Integrity check: All 6 checks passed, 0 critical errors
+- ✅ Verificación SQL:
+  ```
+  Ventas Chrono24: 0
+  Ventas Vestiaire: 144
+  Total ventas: 144
+  ```
+- ✅ Commit a GitHub: "Add bulk delete script for Chrono24 false positives"
+
+**Estado final:**
+- Base de datos limpia y verificada
+- Sistema de prevención activo para evitar futuros falsos positivos
+- Vestiaire intacto (144 ventas conservadas)
+- Backup disponible para rollback si necesario
+
+**Próximos pasos recomendados (Días 1-3):**
+- Día 1: Verificar config (max_pages=20), test scraping, ver dashboard
+- Día 2: Scraping real con 20 páginas, verificar ~2,400 items y 5.7% cobertura
+- Día 3: Segundo scraping para detectar ventas reales, run advanced tests
+
 ## Windows: Comandos con `py`
 
 En Windows, usa `py` en lugar de `python` o `python3`:
@@ -1277,7 +1338,8 @@ py -m pip install -r requirements.txt
 ---
 
 **Última actualización**: 2026-02-09
-**Última verificación de integridad**: 2026-02-09 (717 ventas INCONCLUSIVE por Cloudflare, decisión pendiente)
+**Última verificación de integridad**: 2026-02-09 19:45 (✅ 0 errores críticos, base de datos limpia)
+**Última limpieza de BD**: 2026-02-09 19:41 (✅ 717 falsos positivos Chrono24 eliminados, 144 ventas Vestiaire intactas)
 **Última prueba scraper**: 2026-01-27 12:03 (Chrono24: ✅ 158 items en 3 páginas con FlareSolverr + set_content(), Vestiaire: OK 60 items)
 **Flujo automatizado**: 2026-01-26 (implementado con --workflow y run_workflow.bat)
 **Mejoras de paginación**: 2026-01-26 (validación automática, detección dinámica, reintentos, deduplicación)
@@ -1286,4 +1348,4 @@ py -m pip install -r requirements.txt
 **Dashboard ventas jerárquico**: 2026-01-28 (✅ jerarquía 2 niveles: modelo genérico → sub-modelos, selector de plataforma, gráficos comparativos, galería de fotos)
 **Modelos y fechas**: 2026-01-28 (✅ activados 3 modelos: Omega de ville, Hermès Arceau, Omega Seamaster; rango por defecto: 01/01/2026 → hoy)
 **Implementación FlareSolverr Catawiki**: 2026-01-28 (✅ implementado patrón Chrono24: FlareSolverr + estrategia dual + loop híbrido; ⏳ pendiente de pruebas)
-**Solución falsos positivos**: 2026-02-09 (✅ bug corregido: max_pages hardcoded; ✅ sistema de prevención implementado; ✅ scripts de validación y limpieza creados; ⏳ Fase 5 testing pendiente)
+**Solución falsos positivos**: 2026-02-09 (✅ bug corregido: max_pages hardcoded; ✅ sistema de prevención implementado; ✅ scripts de validación y limpieza creados; ✅ limpieza masiva completada - 717 ventas eliminadas)
