@@ -1,8 +1,14 @@
 # Watch MY Bag Scraper
 
-Aplicación de monitoreo y scraping de relojes en marketplaces online (Chrono24, Vestiaire Collective, Catawiki).
+**Repositorio:** https://github.com/Callejox/watch-my-bag-scraper
+
+Aplicación de monitoreo y scraping de relojes de lujo en marketplaces online (Chrono24, Vestiaire Collective, Catawiki).
 
 Detecta automáticamente ventas comparando inventarios diarios y proporciona un dashboard interactivo para visualizar los datos.
+
+## 📖 ¿Nuevo en Programación?
+
+Si no tienes experiencia técnica, consulta la **[Guía Rápida para Usuarios](GUIA_RAPIDA.md)** con instrucciones paso a paso simplificadas.
 
 ---
 
@@ -81,11 +87,33 @@ docker compose --profile scrape logs scraper
 
 ## Uso Local (sin Docker)
 
-### Comandos principales
+### Flujo Automatizado (Recomendado - Windows)
+
+```powershell
+# FLUJO COMPLETO (scraping + validación + reporte) - UN SOLO COMANDO
+.\run_workflow.bat
+
+# OPCIONES DISPONIBLES:
+.\run_workflow.bat --test-mode        # Modo prueba (1 modelo, 1 página)
+.\run_workflow.bat --chrono24-only    # Solo Chrono24
+.\run_workflow.bat --vestiaire-only   # Solo Vestiaire
+.\run_workflow.bat --catawiki-only    # Solo Catawiki
+.\run_workflow.bat --skip-report      # Sin generar reporte Excel
+```
+
+**El workflow hace TODO automáticamente:**
+- ✅ Verifica Docker y FlareSolverr (necesarios para Chrono24 y Catawiki)
+- ✅ Ejecuta scraping de todas las plataformas activas
+- ✅ Verifica integridad de datos
+- ✅ Repara errores si es necesario
+- ✅ Genera reporte Excel si hay ventas nuevas
+
+### Comandos Individuales (Más control)
 
 ```bash
 # 1. ACTIVAR ENTORNO VIRTUAL (siempre antes de usar)
-source venv/bin/activate
+source venv/bin/activate          # Linux/Mac
+venv\Scripts\activate             # Windows
 
 # 2. INICIALIZAR BASE DE DATOS (solo la primera vez)
 python main.py --init
@@ -100,8 +128,14 @@ streamlit run dashboard.py
 # 5. GENERAR REPORTE EXCEL
 python main.py --report
 
-# 6. EJECUTAR SCRAPER + DETECTAR VENTAS + REPORTE (todo junto)
-python main.py --all
+# 6. VERIFICAR INTEGRIDAD DE DATOS (IMPORTANTE después de scrapear)
+python check_integrity.py --full
+
+# 7. REPARAR BASE DE DATOS (si se detectan problemas)
+python fix_database.py --fix-all
+
+# 8. EJECUTAR FLUJO COMPLETO (Python directo)
+python main.py --workflow
 ```
 
 ---
@@ -224,18 +258,40 @@ Puedes programar el scraper con cron (Linux/Mac) o Task Scheduler (Windows):
 
 El dashboard (http://localhost:8501) incluye:
 
-- **Inventario**: Ver todos los productos actuales en los marketplaces
-- **Ventas**: Productos detectados como vendidos
-- **Análisis**: Gráficos de ventas por plataforma, distribución de precios
-- **Datos**: Tabla exportable con todos los datos
+### Pestañas Principales
 
-### Filtros disponibles
+1. **Inventario**:
+   - Grid visual con tarjetas de productos
+   - Imágenes, precios y enlaces clickeables
+   - Sistema dual de imágenes (local → remota → placeholder)
+
+2. **Ventas** (Vista Jerárquica de 2 Niveles):
+   - **Nivel 1 - Modelo Genérico**: Expanders por modelo (Omega Seamaster, De Ville, etc.)
+     - Gráficos comparativos de sub-modelos (barras + box plots)
+     - Análisis de distribución de precios
+   - **Nivel 2 - Sub-Modelos**: Expanders dentro de cada modelo
+     - Galería de fotos (hasta 6 por grupo)
+     - Métricas: rango de precios, media, total, días medio en venta
+     - Tabla detallada con enlaces clickeables
+   - **Selector de Plataforma**: Filtrar por "Todas" | "Chrono24" | "Vestiaire"
+
+3. **Análisis**:
+   - Gráficos de ventas por plataforma
+   - Distribución de precios
+   - Ventas diarias (timeline)
+
+4. **Datos**:
+   - Tabla completa exportable a CSV
+   - Todos los campos disponibles para análisis
+
+### Filtros Disponibles (Sidebar)
 
 - Plataforma (Chrono24, Vestiaire, Catawiki)
 - Modelo buscado
-- Rango de precio
+- Rango de precio (slider)
 - País del vendedor
 - Condición del producto
+- Rango de fechas (calendarios)
 - ID del vendedor (Vestiaire)
 - ID del producto (Chrono24)
 
@@ -284,10 +340,19 @@ docker compose build --no-cache
 
 ## Notas Importantes
 
-- **Catawiki** está temporalmente desactivado por protección anti-bot agresiva
+### Protección Anti-Bot y FlareSolverr
+
+- **Chrono24**: Requiere FlareSolverr (Docker) para bypass de Cloudflare. Ejecutar máximo 1-2 veces/día
+- **Catawiki**: Requiere FlareSolverr (Docker) para bypass de Cloudflare. Ejecutar máximo 1-2 veces/día
+- **Vestiaire**: No requiere FlareSolverr. Puede ejecutarse 3-4 veces/día sin problemas
+- **FlareSolverr**: Se inicia automáticamente con `run_workflow.bat` o se puede iniciar manualmente con `start_flaresolverr.bat`
+
+### Otras Consideraciones
+
 - El scraper incluye delays aleatorios para evitar bloqueos
-- Se recomienda no ejecutar el scraper más de 2-3 veces al día
 - Los datos se guardan localmente en SQLite (no requiere servidor de base de datos)
+- Se recomienda ejecutar `check_integrity.py` después de cada scraping
+- Las imágenes se descargan automáticamente durante el scraping
 
 ---
 
